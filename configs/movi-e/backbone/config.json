@@ -1,0 +1,45 @@
+{
+  "_class_name": "UNetEncoder",
+  "_diffusers_version": "0.21.4",
+  "act_fn": "silu",
+  "add_attention": true,
+  "attention_head_dim": 8,
+  "block_out_channels": [
+    128,
+    128,
+    256,
+    512
+  ],
+  "center_input_sample": false,
+  "class_embed_type": null,
+  "down_block_types": [
+    "DownBlock2D",
+    "DownBlock2D",
+    "DownBlock2D",
+    "DownBlock2D"
+  ],
+  "downsample_padding": 1,
+  "downsample_type": "conv",
+  "dropout": 0.0,
+  "flip_sin_to_cos": true,
+  "freq_shift": 0,
+  "in_channels": 128,
+  "input_channels": 3,
+  "input_resolution": 256,
+  "layers_per_block": 1,
+  "mid_block_scale_factor": 1,
+  "norm_eps": 1e-05,
+  "norm_num_groups": 16,
+  "num_class_embeds": null,
+  "out_channels": 192,
+  "resnet_time_scale_shift": "default",
+  "sample_size": 64,
+  "time_embedding_type": "positional",
+  "up_block_types": [
+    "UpBlock2D",
+    "UpBlock2D",
+    "UpBlock2D",
+    "UpBlock2D"
+  ],
+  "upsample_type": "conv"
+}

@@ -1,0 +1,13 @@
+CUDA_VISIBLE_DEVICES=0,1,2,3 accelerate launch --multi_gpu --num_processes=4 --main_process_port 29500 train_lsd.py \
+--enable_xformers_memory_efficient_attention --dataloader_num_workers 4 --learning_rate 1e-4 \
+--mixed_precision fp16 --num_validation_images 32 --val_batch_size 32 --max_train_steps 200000 \
+--checkpointing_steps 25000 --checkpoints_total_limit 2 --gradient_accumulation_steps 1 \
+--seed 42 --encoder_lr_scale 1.0 --train_split_portion 0.9 \
+--output_dir /path_to_your_logs/lsd/movi-e/ \
+--backbone_config configs/movi-e/backbone/config.json \
+--slot_attn_config configs/movi-e/slot_attn/config.json \
+--unet_config configs/movi-e/unet/config.json \
+--scheduler_config configs/movi-e/scheduler/scheduler_config.json \
+--dataset_root /path_to_your_movi/movi-e/movi-e-train-with-label/images/ \
+--dataset_glob '**/*.png' --train_batch_size 32 --resolution 256 --validation_steps 5000 \
+--tracker_project_name latent_slot_diffusion

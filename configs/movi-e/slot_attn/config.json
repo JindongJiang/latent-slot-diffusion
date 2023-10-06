@@ -1,0 +1,15 @@
+{
+  "_class_name": "MultiHeadSTEVESA",
+  "_diffusers_version": "0.21.4",
+  "bi_level": false,
+  "epsilon": 1e-06,
+  "input_resolution": 64,
+  "input_size": 192,
+  "learnable_slot_init": false,
+  "mlp_hidden_size": 192,
+  "num_heads": 1,
+  "num_iterations": 3,
+  "num_slots": 24,
+  "slot_size": 192,
+  "out_size": 192
+}
