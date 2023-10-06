@@ -3,13 +3,13 @@ This is an official PyTorch implementation of the **Latent Slot Diffusion (LSD)*
 
 > [LSD: Object-Centric Slot Diffusion](https://arxiv.org/abs/2303.10834)   
 > *[Jindong Jiang](https://jindongjiang.me/), [Fei Deng](https://scholar.google.com/citations?hl=en&user=F-V72fUAAAAJ&view_op=list_works&sortby=pubdate), [Gautam Singh](https://singhgautam.github.io/), [Sungjin Ahn](https://mlml.kaist.ac.kr/sungjinahn)*   
-> **NeurIPS 2023 Spotlight**   
+> **NeurIPS 2023 🌟Spotlight🌟**   
 > [Project page](https://latentslotdiffusion.github.io/): https://latentslotdiffusion.github.io/   
 
 
 ## Highlights
 
-The Latent Slot Diffusion (LSD) model achieves **unsupervised learning** of object segmentation, text-free high-quality compositio🌟nal generation, object-based, and more — all powered by image reconstruction signals!
+The Latent Slot Diffusion (LSD) model achieves **unsupervised learning** of object segmentation, text-free high-quality compositional generation, object-based, and more — all powered by image reconstruction signals!
 
 To do so, LSD integrates a **visual prompt (object) encoder** with a **latent diffusion decoder**. The object encoder extracts spatially distinct abstractions (slots) from images, while the decoder reconstructs (denoises) the image  on these slots. Both components are training jointly under the image reconstruction objective.
 
