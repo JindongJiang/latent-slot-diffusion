@@ -143,7 +143,7 @@ If you find this code useful for your research, please cite our paper with the f
 
 ```
 @article{jiang2023object,
-  title={Object-centric slot diffusion},
+  title={Object-Centric Slot Diffusion},
   author={Jiang, Jindong and Deng, Fei and Singh, Gautam and Ahn, Sungjin},
   journal={NeurIPS},
   year={2023}
