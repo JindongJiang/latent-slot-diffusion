@@ -41,7 +41,7 @@ from src.models.slot_attn import MultiHeadSTEVESA
 from src.models.unet_with_pos import UNet2DConditionModelWithPos
 from src.data.dataset import GlobDataset
 
-from src.configs.parser import parse_args
+from configs.parser import parse_args
 
 from src.models.utils import ColorMask
 
