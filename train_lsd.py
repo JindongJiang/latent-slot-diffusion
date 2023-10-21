@@ -370,7 +370,7 @@ def main(args):
 
 
     params_to_optimize = list(slot_attn.parameters()) + \
-        list(backbone.parameters()) + list(unet.up_blocks.parameters())
+        list(backbone.parameters()) + list(unet.parameters())
     params_group = [
         {'params': list(slot_attn.parameters()) + list(backbone.parameters()),
          'lr': args.learning_rate * args.encoder_lr_scale}
