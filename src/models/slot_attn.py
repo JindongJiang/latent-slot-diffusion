@@ -38,6 +38,8 @@ class MultiHeadSTEVESA(ModelMixin, ConfigMixin):
             nn.Linear(input_size, input_size)
             )
         if bi_level:
+            # We tested bi_level slot attention (Jia et al. in https://arxiv.org/abs/2210.08990) at the early stage of the project,
+            # and we didn't find it helpful
             assert learnable_slot_init, 'Bi-level training requires learnable_slot_init=True'
 
         self.num_iterations = num_iterations

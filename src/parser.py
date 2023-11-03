@@ -231,7 +231,7 @@ def parse_args(input_args=None):
         "--backbone_config",
         type=str,
         default=None,
-        help="Path to a config file for the backbone.",
+        help="Path to a config file for the backbone or pretrain_dino.",
         required=True,
     )
     parser.add_argument(
@@ -245,7 +245,7 @@ def parse_args(input_args=None):
         "--unet_config",
         type=str,
         default=None,
-        help="Path to a config file for the unet.",
+        help="Path to a config file for the unet or pretrain_sd.",
         required=True,
     )
     parser.add_argument(

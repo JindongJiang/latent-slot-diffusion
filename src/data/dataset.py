@@ -10,7 +10,7 @@ from torch.utils.data import Dataset
 class GlobDataset(Dataset):
     def __init__(self, root, img_size, img_glob='*.png', 
                  data_portion=(),  random_data_on_portion=True,
-                 random_flip=False):
+                vit_norm=False, random_flip=False, vit_input_resolution=448):
         super().__init__()
         if isinstance(root, str) or not hasattr(root, '__iter__'):
             root = [root]
@@ -20,6 +20,7 @@ class GlobDataset(Dataset):
         self.root = root
         self.img_size = img_size
         self.episodes = []
+        self.vit_norm = vit_norm
         self.random_flip = random_flip
 
         for n, (r, g) in enumerate(zip(root, img_glob)):
@@ -48,6 +49,17 @@ class GlobDataset(Dataset):
             transforms.ToTensor(),
             transforms.Normalize(mean=[0.5], std=[0.5])
         ])
+
+        if vit_norm:
+            self.transform_vit = transforms.Compose([
+                transforms.Resize(vit_input_resolution, interpolation=torchvision.transforms.InterpolationMode.BILINEAR),
+                transforms.CenterCrop(vit_input_resolution),
+                transforms.ToTensor(),
+                transforms.Normalize(
+                    mean=[0.485, 0.456, 0.406],
+                    std=[0.229, 0.224, 0.225]
+                )
+            ])
     
     def __len__(self):
         return len(self.episodes)
@@ -62,6 +74,9 @@ class GlobDataset(Dataset):
                 image = image.transpose(Image.FLIP_LEFT_RIGHT)
         pixel_values = self.transform(image)
         example["pixel_values"] = pixel_values
+        if self.vit_norm:
+            image_vit = self.transform_vit(image)
+            example["pixel_values_vit"] = image_vit
         return example
 
 if __name__ == "__main__":

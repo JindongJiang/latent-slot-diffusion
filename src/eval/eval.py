@@ -206,8 +206,11 @@ if args.enable_xformers_memory_efficient_attention:
 total_data = 0
 ari_list_no_bg = []
 # ari_list_with_bg = []
-miou_list_no_bg = []
-mbo_list_no_bg = []
+miou_list_no_bg_average_over_objects = []
+mbo_list_no_bg_average_over_objects = []
+
+miou_list_no_bg_average_over_images = []
+mbo_list_no_bg_average_over_images = []
 
 slots_list = []
 # shape_label_list = []
@@ -275,6 +278,8 @@ with torch.no_grad():
         _, indices = hungarian_algorithm(cost_matrix)
 
         for idx_in_batch, num_o in enumerate(labels['num_obj']):
+            miou_no_bg_per_img = []
+            mbo_no_bg_per_img = []
             for gt_idx, pred_idx in zip(indices[idx_in_batch][0], indices[idx_in_batch][1]):
                 if selected_objects[idx_in_batch, ..., 0][
                         gt_idx] == 0:  # no gt_idx - 1 here because we added the background to the beginning
@@ -282,13 +287,16 @@ with torch.no_grad():
 
                 gt_map = (true_masks[idx_in_batch] == gt_idx)
                 pred_map = (attn_argmax[idx_in_batch] == pred_idx)
-                miou_list_no_bg.append(
+                miou_list_no_bg_average_over_objects.append(
+                    (gt_map & pred_map).sum() / (gt_map | pred_map).sum())
+                miou_no_bg_per_img.append(
                     (gt_map & pred_map).sum() / (gt_map | pred_map).sum())
 
                 iou_all = (gt_map[None] & attns_one_hot[idx_in_batch].bool()).sum((-2, -1)) / \
                           (gt_map[None] | attns_one_hot[idx_in_batch].bool()).sum(
                               (-2, -1))
-                mbo_list_no_bg.append(iou_all.max())
+                mbo_list_no_bg_average_over_objects.append(iou_all.max())
+                mbo_no_bg_per_img.append(iou_all.max())
 
                 # slot_obj = slots[idx_in_batch, 0, pred_idx]
                 slot_obj = slots[idx_in_batch, pred_idx]
@@ -299,6 +307,10 @@ with torch.no_grad():
                 for k in label_discrete_dict.keys():
                     label_discrete_dict[k].append(
                         (labels[k][idx_in_batch, gt_idx - obj_idx_adjustment]).long())
+            if miou_no_bg_per_img:
+                miou_list_no_bg_average_over_images.append(
+                    torch.stack(miou_no_bg_per_img).mean())
+                mbo_list_no_bg_average_over_images.append(
 
         total_data += pixel_values.shape[0]
         progress_bar.update(1)
@@ -308,13 +320,25 @@ ari_list_no_bg = torch.cat(ari_list_no_bg)
 
 print('ari_list_no_bg: ', ari_list_no_bg.mean())
 
-miou_list_no_bg = torch.mean(torch.stack(miou_list_no_bg))
+miou_list_no_bg_average_over_objects = torch.mean(torch.stack(miou_list_no_bg_average_over_objects))
 
-print('miou_list_no_bg: ', miou_list_no_bg.mean())
+print('miou_list_no_bg_average_over_objects: ', miou_list_no_bg_average_over_objects.mean())
 
-mbo_list_no_bg = torch.mean(torch.stack(mbo_list_no_bg))
+mbo_list_no_bg_average_over_objects = torch.mean(torch.stack(mbo_list_no_bg_average_over_objects))
 
-print('mbo_list_no_bg: ', mbo_list_no_bg.mean())
+print('mbo_list_no_bg_average_over_objects: ', mbo_list_no_bg_average_over_objects.mean())
+
+# most of the methods actually use the following segmentation metrics average over images,
+# however, we use the above version which compute the metrics over objects, empirically
+# the over images version gets a noticably better score
+
+miou_list_no_bg_average_over_images = torch.mean(torch.stack(miou_list_no_bg_average_over_images))
+
+print('miou_list_no_bg_average_over_images: ', miou_list_no_bg_average_over_images.mean())
+
+mbo_list_no_bg_average_over_images = torch.mean(torch.stack(mbo_list_no_bg_average_over_images))
+
+print('mbo_list_no_bg_average_over_images: ', mbo_list_no_bg_average_over_images.mean())
 
 slots_list = torch.stack(slots_list, dim=0)
 
@@ -326,8 +350,8 @@ label_continuous_dict = {
     k: torch.stack(v, dim=0).to(device=accelerator.device, dtype=weight_dtype) for k, v in label_continuous_dict.items()
 }
 # normalize each dimension to aproximately [-1, 1]
-# we didn't perform it when getting the paper results
-# but realized we should have it for future researches
+# we didn't do it in the paper but realized one 
+# should use it to get better performance results
 for k, v in label_continuous_dict.items():
     v_min = v.min(dim=0, keepdim=True)[0]
     v_max = v.max(dim=0, keepdim=True)[0]

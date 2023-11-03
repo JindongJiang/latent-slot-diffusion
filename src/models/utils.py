@@ -131,7 +131,8 @@ def random_colors(N, randomize=False, rng=42):
     return colors
 
 class ColorMask(object):
-    def __init__(self, num_slots, log_img_size, norm_mean, norm_std, rng=42, img_tmp_pth=None):
+    def __init__(self, num_slots, log_img_size, norm_mean, 
+                 norm_std, rng=42, img_tmp_pth=None, reshape_first=False):
         self.img_tmp_pth = img_tmp_pth
         self.num_slots = num_slots
         self.log_img_size = log_img_size
@@ -147,6 +148,7 @@ class ColorMask(object):
             transforms.Normalize(mean=-torch.tensor(norm_mean),
                                  std=[1., 1., 1.])
         ])
+        self.reshape_first = reshape_first
 
     def apply_colormap_on_image(self, org_im, activation, colormap_name, alpha=0.5):
         """
@@ -227,6 +229,13 @@ class ColorMask(object):
 
         num_s = attn.size(1)
         # --------------------------------------------------------------------------
+        # reshape first to get nicer visualization
+        if self.reshape_first and (attn.shape[-2] != img.shape[-2] or attn.shape[-1] != img.shape[-1]):
+            attn = transforms.Resize(size=img.shape[-2:], interpolation=transforms.InterpolationMode.BILINEAR,
+                                     antialias=True)(attn)
+            
+        # --------------------------------------------------------------------------
+        # --------------------------------------------------------------------------
         # get color map
         if mask_pred_sorted is None:
             mask_pred = (attn.argmax(1, keepdim=True) == torch.arange(attn.size(1))[None, :, None, None]).float()
@@ -243,15 +252,10 @@ class ColorMask(object):
         # --------------------------------------------------------------------------
 
         if attn.shape[-2] != img.shape[-2] or attn.shape[-1] != img.shape[-1]:
-            # attn = transforms.Resize(size=img.shape[-2:], interpolation=transforms.InterpolationMode.NEAREST,
-            #                          antialias=True)(attn)
             attn = transforms.Resize(size=img.shape[-2:], interpolation=transforms.InterpolationMode.BILINEAR,
                                      antialias=True)(attn)
 
         attn = rearrange(attn, 'b s h w -> b s (h w)')
-
-        # attn = (attn - attn.min(dim=-1, keepdim=True)[0]) / \
-        #        (attn.max(dim=-1, keepdim=True)[0] - attn.min(dim=-1, keepdim=True)[0] + 1e-8)
 
         attn = rearrange(attn, 'b s h_w -> (b s) h_w').detach().numpy()
 
@@ -273,7 +277,7 @@ class ColorMask(object):
             grid_image = torch.cat([*[r[:, None] for r in recon if r is not None], grid_image], dim=1)
         grid_image = make_grid(rearrange(grid_image, 'b n c h w -> (b n) c h w'),
                                nrow=grid_image.size(1), padding=1,
-                               pad_value=0.8)  # clamp to prevent overshooting caused by bicubic interpolation
+                               pad_value=0.8)
         if return_all:
             return grid_image, img_overlay, color_mask, heatmap_on_image
         return grid_image

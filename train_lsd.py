@@ -30,7 +30,7 @@ from diffusers import (
     DDPMScheduler,
     StableDiffusionPipeline,
 )
-# from diffusers.training_utils import compute_snr # diffusers is still working on this yet, uncomment in the future version
+# from diffusers.training_utils import compute_snr # diffusers is still working on this, uncomment in future versions
 from diffusers.utils import check_min_version, is_wandb_available
 from diffusers.utils.import_utils import is_xformers_available
 
@@ -41,7 +41,7 @@ from src.models.slot_attn import MultiHeadSTEVESA
 from src.models.unet_with_pos import UNet2DConditionModelWithPos
 from src.data.dataset import GlobDataset
 
-from configs.parser import parse_args
+from src.parser import parse_args
 
 from src.models.utils import ColorMask
 
@@ -238,20 +238,55 @@ def main(args):
             ).repo_id
 
     # Load scheduler and models
-    noise_scheduler_config = DDPMScheduler.load_config(args.scheduler_config)
-    noise_scheduler = DDPMScheduler.from_config(noise_scheduler_config)
+    if args.unet_config == "pretrain_sd":
+        noise_scheduler = DDPMScheduler.from_pretrained(
+        args.pretrained_model_name, subfolder="scheduler")
+    else:
+        noise_scheduler_config = DDPMScheduler.load_config(args.scheduler_config)
+        noise_scheduler = DDPMScheduler.from_config(noise_scheduler_config)
 
     vae = AutoencoderKL.from_pretrained(
         args.pretrained_model_name, subfolder="vae")
     
-    backbone_config = UNetEncoder.load_config(args.backbone_config)
-    backbone = UNetEncoder.from_config(backbone_config)
+    if os.path.exists(args.backbone_config):
+        train_backbone = True
+        backbone_config = UNetEncoder.load_config(args.backbone_config)
+        backbone = UNetEncoder.from_config(backbone_config)
+    elif args.backbone_config == "pretrain_dino":
+        train_backbone = False
+        dinov2 = torch.hub.load("facebookresearch/dinov2", "dinov2_vitb14")
+        class DINOBackbone(torch.nn.Module):
+            def __init__(self, dinov2):
+                super().__init__()
+                self.dinov2 = dinov2
+
+            def forward(self, x):
+                enc_out = self.dinov2.forward_features(x)
+                return rearrange(
+                    enc_out["x_norm_patchtokens"], 
+                    "b (h w ) c -> b c h w",
+                    h=int(np.sqrt(enc_out["x_norm_patchtokens"].shape[-2]))
+                )
+        backbone = DINOBackbone(dinov2)
+    else:
+        raise ValueError(
+            f"Unknown unet config {args.unet_config}")
 
     slot_attn_config = MultiHeadSTEVESA.load_config(args.slot_attn_config)
     slot_attn = MultiHeadSTEVESA.from_config(slot_attn_config)
 
-    unet_config = UNet2DConditionModelWithPos.load_config(args.unet_config)
-    unet = UNet2DConditionModelWithPos.from_config(unet_config)
+    if os.path.exists(args.unet_config):
+        train_unet = True
+        unet_config = UNet2DConditionModelWithPos.load_config(args.unet_config)
+        unet = UNet2DConditionModelWithPos.from_config(unet_config)
+    elif args.unet_config == "pretrain_sd":
+        train_unet = False
+        unet = UNet2DConditionModel.from_pretrained(
+            args.pretrained_model_name, subfolder="unet", revision=args.revision
+        )
+    else:
+        raise ValueError(
+            f"Unknown unet config {args.unet_config}")
 
     # create custom saving & loading hooks so that `accelerator.save_state(...)` serializes in a nice format
 
@@ -301,6 +336,14 @@ def main(args):
     accelerator.register_load_state_pre_hook(load_model_hook)
 
     vae.requires_grad_(False)
+    if not train_backbone:
+        try:
+            backbone.requires_grad_(False)
+        except:
+            pass
+    if not train_unet:
+        unet.requires_grad_(False)
+        
     if args.enable_xformers_memory_efficient_attention:
         if is_xformers_available():
             import xformers
@@ -321,7 +364,10 @@ def main(args):
 
     if args.gradient_checkpointing:
         unet.enable_gradient_checkpointing()
-        backbone.enable_gradient_checkpointing()
+        try:
+            backbone.enable_gradient_checkpointing()
+        except AttributeError:
+                pass
 
     # Check that all trainable models are in full precision
     low_precision_error_string = (
@@ -329,12 +375,12 @@ def main(args):
         " doing mixed precision training. copy of the weights should still be float32."
     )
 
-    if accelerator.unwrap_model(unet).dtype != torch.float32:
+    if train_unet and accelerator.unwrap_model(unet).dtype != torch.float32:
         raise ValueError(
             f"Unet loaded as datatype {accelerator.unwrap_model(unet).dtype}. {low_precision_error_string}"
         )
 
-    if accelerator.unwrap_model(backbone).dtype != torch.float32:
+    if train_backbone and accelerator.unwrap_model(backbone).dtype != torch.float32:
         raise ValueError(
             f"Backbone loaded as datatype {accelerator.unwrap_model(backbone).dtype}. {low_precision_error_string}"
         )
@@ -370,14 +416,17 @@ def main(args):
 
 
     params_to_optimize = list(slot_attn.parameters()) + \
-        list(backbone.parameters()) + list(unet.parameters())
+        (list(backbone.parameters()) if train_backbone else []) + \
+        (list(unet.parameters()) if train_unet else [])
     params_group = [
-        {'params': list(slot_attn.parameters()) + list(backbone.parameters()),
+        {'params': list(slot_attn.parameters()) + \
+         (list(backbone.parameters()) if train_backbone else []),
          'lr': args.learning_rate * args.encoder_lr_scale}
     ]
-    params_group.append(
-        {'params': unet.parameters(), "lr": args.learning_rate}
-    )
+    if train_unet:
+        params_group.append(
+            {'params': unet.parameters(), "lr": args.learning_rate}
+        )
 
     optimizer = optimizer_class(
         params_group,
@@ -386,9 +435,11 @@ def main(args):
         weight_decay=args.adam_weight_decay,
         eps=args.adam_epsilon,
     )
-
+    
+    # implement your lr_sceduler here, here I use constant functions as 
+    # the template for your reference
     lr_scheduler = torch.optim.lr_scheduler.LambdaLR(
-        optimizer, lr_lambda=[lambda _: 1, lambda _: 1]
+        optimizer, lr_lambda=[lambda _: 1, lambda _: 1] if train_unet else [lambda _: 1]
         )
 
     train_dataset = GlobDataset(
@@ -396,7 +447,9 @@ def main(args):
         img_size=args.resolution,
         img_glob=args.dataset_glob,
         data_portion=(0.0, args.train_split_portion),
+        vit_norm=args.backbone_config == "pretrain_dino",
         random_flip=args.flip_images,
+        vit_input_resolution=args.vit_input_resolution
     )
 
     train_dataloader = torch.utils.data.DataLoader(
@@ -406,11 +459,14 @@ def main(args):
         num_workers=args.dataloader_num_workers,
     )
 
+    # validation set is only for visualization
     val_dataset = GlobDataset(
         root=args.dataset_root,
         img_size=args.resolution,
         img_glob=args.dataset_glob,
         data_portion=(args.train_split_portion if args.train_split_portion < 1. else 0.9, 1.0),
+        vit_norm=args.backbone_config == "pretrain_dino",
+        vit_input_resolution=args.vit_input_resolution
     )
 
     # Scheduler and math around the number of training steps.
@@ -422,9 +478,14 @@ def main(args):
         overrode_max_train_steps = True
 
     # Prepare everything with our `accelerator`.
-    backbone, unet, slot_attn, optimizer, train_dataloader, lr_scheduler = accelerator.prepare(
-        backbone, unet, slot_attn, optimizer, train_dataloader, lr_scheduler
+    slot_attn, optimizer, train_dataloader, lr_scheduler = accelerator.prepare(
+        slot_attn, optimizer, train_dataloader, lr_scheduler
     )
+
+    if train_backbone:
+        backbone = accelerator.prepare(backbone)
+    if train_unet:
+        unet = accelerator.prepare(unet)
 
     # For mixed precision training we cast all non-trainable weigths (vae, non-lora text_encoder and non-lora unet) to half-precision
     # as these weights are only used for inference, keeping weights in full precision is not required.
@@ -436,6 +497,13 @@ def main(args):
 
     # Move vae device and cast to weight_dtype
     vae.to(accelerator.device, dtype=weight_dtype)
+    if not train_backbone:
+        try:
+            backbone.to(accelerator.device, dtype=weight_dtype)
+        except:
+            pass
+    if not train_unet:
+        unet.to(accelerator.device, dtype=weight_dtype)
 
     # We need to recalculate our total training steps as the size of the training dataloader may have changed.
     num_update_steps_per_epoch = math.ceil(
@@ -512,8 +580,10 @@ def main(args):
     )
 
     for epoch in range(first_epoch, args.num_train_epochs):
-        unet.train()
-        backbone.train()
+        if train_unet:
+            unet.train()
+        if train_backbone:
+            backbone.train()
         slot_attn.train()
         for step, batch in enumerate(train_dataloader):
             pixel_values = batch["pixel_values"].to(dtype=weight_dtype)
@@ -549,6 +619,9 @@ def main(args):
                 feat = backbone(pixel_values)
             slots, attn = slot_attn(feat[:, None])  # for the time dimension
             slots = slots[:, 0]
+
+            if not train_unet:
+                slots = slots.to(dtype=weight_dtype)
 
             # Predict the noise residual
             model_pred = unet(
