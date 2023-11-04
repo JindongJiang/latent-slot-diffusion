@@ -330,7 +330,7 @@ print('mbo_list_no_bg_average_over_objects: ', mbo_list_no_bg_average_over_objec
 
 # most of the methods actually use the following segmentation metrics average over images,
 # however, we use the above version which compute the metrics over objects, empirically
-# the over images version gets a noticably better score
+# the below over-image version consistently gets a higher score
 
 miou_list_no_bg_average_over_images = torch.mean(torch.stack(miou_list_no_bg_average_over_images))
 
