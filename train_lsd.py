@@ -29,6 +29,7 @@ from diffusers import (
     AutoencoderKL,
     DDPMScheduler,
     StableDiffusionPipeline,
+    UNet2DConditionModel,
 )
 # from diffusers.training_utils import compute_snr # diffusers is still working on this, uncomment in future versions
 from diffusers.utils import check_min_version, is_wandb_available
