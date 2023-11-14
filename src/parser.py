@@ -286,6 +286,12 @@ def parse_args(input_args=None):
         default=0.9,
         help="Portion of the dataset to use for training.",
     )
+    parser.add_argument(
+        "--vit_input_resolution",
+        type=int,
+        default=448,
+        help="Input resolution for the ViT. Attention resolution will be 1/14 of this value (with vit14).",
+    )
 
     if input_args is not None:
         args = parser.parse_args(input_args)
