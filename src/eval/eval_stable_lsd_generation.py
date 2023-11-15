@@ -161,7 +161,7 @@ class GlobDataset(Dataset):
                 img_size=256, vit_input_resolution=448):
         super().__init__()
 
-        self.coco_dir='/common/users/jj691/coco/'
+        self.coco_dir=coco_dir
         self.coco_split='val2017'
         annFile='{}/annotations/instances_{}.json'.format(self.coco_dir, self.coco_split)
 
@@ -196,7 +196,7 @@ class GlobDataset(Dataset):
         return len(self.imgs_info)
 
     def __getitem__(self, i):
-        img_path = os.path.join(self.coco_dir, self.coco_split, self.imgs_info[i]['file_name'])
+        img_path = os.path.join(self.coco_dir, 'images', self.coco_split, self.imgs_info[i]['file_name'])
         img = Image.open(img_path)
         if not img.mode == "RGB":
             img = img.convert("RGB")
@@ -219,8 +219,6 @@ if accelerator.mixed_precision == "fp16":
     weight_dtype = torch.float16
 elif accelerator.mixed_precision == "bf16":
     weight_dtype = torch.bfloat16
-
-max_num_obj = test_dataset.max_cat_id
 
 test_sampler = None
 
@@ -314,13 +312,7 @@ os.makedirs(args.output_dir, exist_ok=True)
 
 with torch.no_grad():
     for batch_idx, batch in enumerate(test_loader):
-        # image, true_mask, labels = batch_data
         pixel_values = batch["pixel_values"].to(device=accelerator.device, dtype=weight_dtype)
-        # true_masks = batch["masks"].to(device=accelerator.device, dtype=weight_dtype)
-        true_masks = batch["instance_masks"].to(device=accelerator.device, dtype=weight_dtype)
-        masks_overlap = batch["masks_overlap"].to(device=accelerator.device)
-        # visibility = batch["visibility"]
-        visibility = batch["instance_visibility"]
 
         if pretrain_backbone:
             pixel_values_vit = batch["pixel_values_vit"].to(device=accelerator.device, dtype=weight_dtype)
@@ -362,6 +354,7 @@ with torch.no_grad():
                                            recon=[])
         ndarr = grid_image.mul(255).add_(0.5).clamp_(0, 255).permute(1, 2, 0).to('cpu', torch.uint8).numpy()
         im = Image.fromarray(ndarr)
+        print(f'Saving images to {args.output_dir}...')
         im.save(os.path.join(args.output_dir, f'{batch_idx}_segmentation.png'))
         if batch_idx > 10:
             break
