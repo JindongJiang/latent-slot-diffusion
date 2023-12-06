@@ -667,10 +667,6 @@ def main(args):
 
             loss = loss / args.gradient_accumulation_steps
 
-            # if args.with_prior_preservation:
-            #     # Add the prior loss to the instance loss.
-            #     loss = loss + args.prior_loss_weight * prior_loss
-
             accelerator.backward(loss)
             accumulate_steps += 1
             # if accelerator.sync_gradients:
