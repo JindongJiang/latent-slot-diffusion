@@ -11,9 +11,9 @@ This is an official PyTorch implementation of the **Latent Slot Diffusion (LSD)*
 
 ## Highlights
 
-The Latent Slot Diffusion (LSD) model achieves **unsupervised learning** of object segmentation, text-free high-quality compositional generation, object-based, and more — all powered by image reconstruction signals!
+This work aims to discover the compositional and modular latent structure of the physical world from input images without any human annotations. The proposed Latent Slot Diffusion (LSD) model achieves **unsupervised learning** of object segmentation, text-free high-quality compositional generation, object-based image editing, and more — all powered by image reconstruction signals!
 
-To do so, LSD integrates a **visual prompt (object) encoder** with a **latent diffusion decoder**. The object encoder extracts spatially distinct abstractions (slots) from images, while the decoder reconstructs (denoises) the image  on these slots. Both components are training jointly under the image reconstruction objective.
+To do so, LSD integrates a **visual prompt (object) encoder** with a **latent slot diffusion decoder**. The object encoder extracts spatially distinct abstractions (slots) from images, while the decoder reconstructs (denoises) the image conditioned on these slots. Both components are training jointly under the image reconstruction objective.
 
 <p align="center">
   <img src="figures/method.png" width="90%" />
