@@ -20,7 +20,7 @@ To do so, LSD integrates a **visual prompt (object) encoder** with a **latent sl
 </p>
 
 
-**Object-based Segmentation**: During unsupervised training phase, the object encoder learns to identify objects and semantically meaningful regions. This allows it to achieve unsupervised object-based segmentation and representation learning in multi-object scenarios (e.g., the MOVi benchmark) and part-based segmentation and representation learning in single object images (e.g. FFHQ human face dataset). We have observed a significant improvement in segmentation and representation quality over state-of-the-art models, such as a ~9% boost in mIoU on the MOVi-E dataset.
+**Object-Based Segmentation**: During unsupervised training phase, the object encoder learns to identify objects and semantically meaningful regions. This allows it to achieve unsupervised object-based segmentation and representation learning in multi-object scenarios (e.g., the MOVi benchmark) and part-based segmentation and representation learning in single object images (e.g. FFHQ human face dataset). We have observed a significant improvement in segmentation and representation quality over state-of-the-art models, such as a ~9% boost in mIoU on the MOVi-E dataset.
 
 <p align="center">
   <img src="figures/segmentation.png" width="95%" />
