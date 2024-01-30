@@ -4,7 +4,8 @@ This is an official PyTorch implementation of the **Latent Slot Diffusion (LSD)*
 > [LSD: Object-Centric Slot Diffusion](https://arxiv.org/abs/2303.10834)   
 > *[Jindong Jiang](https://jindongjiang.me/), [Fei Deng](https://scholar.google.com/citations?hl=en&user=F-V72fUAAAAJ&view_op=list_works&sortby=pubdate), [Gautam Singh](https://singhgautam.github.io/), [Sungjin Ahn](https://mlml.kaist.ac.kr/sungjinahn)*   
 > **NeurIPS 2023 🌟Spotlight🌟**   
-> [Project page](https://latentslotdiffusion.github.io/): https://latentslotdiffusion.github.io/   
+> [Project page](https://latentslotdiffusion.github.io/): https://latentslotdiffusion.github.io/
+> [NeurIPS Submission](https://openreview.net/forum?id=gbOukzirpK): https://openreview.net/forum?id=gbOukzirpK   
 
 ## Updates
 * **2023.11.02:** Added implementation of Latent Slot Stable Diffusion (Stable-LSD), along with the code for conditional image sampling.
