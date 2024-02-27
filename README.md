@@ -100,7 +100,7 @@ To run the script, you will need to create another conda environment which is al
 conda create -n tfds
 conda activate tfds
 conda install pip -y
-pip install tensorflow-datasets gcfs tqdm pillow
+python -m pip install tensorflow-datasets gcsfs tqdm pillow
 ```
 
 Then, you can run the data pre-processing code with the following command.
