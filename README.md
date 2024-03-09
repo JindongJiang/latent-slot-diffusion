@@ -162,10 +162,13 @@ CUDA_VISIBLE_DEVICES=0  python src/eval/eval_stable_lsd_generation.py \
 If you find this code useful for your research, please cite our paper with the following BibTeX entry
 
 ```
-@article{jiang2023object,
-  title={Object-Centric Slot Diffusion},
-  author={Jiang, Jindong and Deng, Fei and Singh, Gautam and Ahn, Sungjin},
-  journal={NeurIPS},
-  year={2023}
+@inproceedings{jiang2023object,
+  title = {Object-Centric Slot Diffusion},
+  author = {Jiang, Jindong and Deng, Fei and Singh, Gautam and Ahn, Sungjin},
+  booktitle = {Advances in Neural Information Processing Systems},
+  volume = {36},
+  pages = {8563--8601},
+  url = {https://proceedings.neurips.cc/paper_files/paper/2023/file/1b3ceb8a495a63ced4a48f8429ccdcd8-Paper-Conference.pdf},
+  year = {2023}
 }
 ```
